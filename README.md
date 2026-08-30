@@ -56,10 +56,16 @@ pipeline in Databricks, and use it to answer six business questions.
 <!--MJ: ## 3. Modelling journey -->
 
 
+
 <!-- ─────────── new %md cell ─────────── -->
 <!--Kinah:## 4. Data quality framework -->
+
 
 
 <!-- ─────────── new %md cell ─────────── -->
 <!-- Vee:## 5. Validation-->
 
+
+
+<!-- ─────────── new %md cell ─────────── -->
+<!-- Jemma -->
