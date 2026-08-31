@@ -58,7 +58,55 @@ pipeline in Databricks, and use it to answer six business questions.
 
 
 <!-- ─────────── new %md cell ─────────── -->
-<!--Kinah:## 4. Data quality framework -->
+## 4. Data quality framework
+
+### Principle: gate on business need, measure everything else
+
+Two different mechanisms:
+
+|  | Rules (gates) | Profiling (measurement) |
+|---|---|---|
+| Coverage | business-critical columns only | every column |
+| Output | per-row verdict (`dq_status`) | per-column aggregate |
+| Purpose | block unusable rows | understand the data |
+
+### The three statuses
+
+| Status | Meaning | Effect |
+|---|---|---|
+| `REJECT` | row is unusable — identity or join is broken | filtered out at the mart |
+| `WARN` | row is real but degrades a specific question | kept; bucketed as `'Unknown'` |
+| `PASS` | no issue | kept |
+
+### Facts are stricter than dimensions
+
+A customer with no country is still a customer. We flag them `WARN`, keep them,
+and set their country to `'Unknown'` in `dim_customer` — so their revenue still
+shows up in the genre-per-country report instead of disappearing from the totals.
+
+A fact row is different. If its key is broken it won't match any dimension, so
+it drops out of every total without raising an error — the numbers just come out
+too low. Because of that, `fact_invoiceline` has **no `WARN` tier**: every
+problem is a `REJECT`.
+
+### Flag, never delete
+
+The clean layer keeps every row and labels it. Rows are only excluded later, at
+the mart (`WHERE dq_status != 'REJECT'`). If we deleted bad rows in clean we
+could never report on what was wrong with them.
+
+### Deliberate non-decisions
+
+Things we considered and chose **not** to do, with reasons:
+
+| Not done | Why |
+|---|---|
+| Cast PostalCode to INT | destroys leading zeros; Chinook has alphanumeric codes |
+| Deduplication step | source is normalized and loaded with `CREATE OR REPLACE`; we asserted key uniqueness instead |
+| Drop columns at clean | the mart selects down; dropping early means rebuilding for a future question |
+| Remove price "outliers" | they were a parser bug, not outliers |
+
+Change the data only when you've seen a reason to. Keep the checks either way.
 
 
 
