@@ -54,8 +54,7 @@ pipeline in Databricks, and use it to answer six business questions.
 
 - A Databricks workspace with Unity Catalog enabled
 - A running SQL warehouse or cluster
-- The 11 Chinook CSVs in a Unity Catalog volume:
-  `/Volumes/workspace/default/ftw-b12-de/shared/week05/chinook_csv/`
+- The 11 Chinook CSVs in a Unity Catalog volume
 - Permission to create schemas in the `Week5` catalog.
 - One notebook (`week5_chinook`) that contains all queries.
 
@@ -79,7 +78,6 @@ an empty catalog.
 | 4. Mart | 4 dimensions, 1 fact, 1 aggregate | Clean |
 | 5. Views | 6 business-question views | Mart |
 | 6. Findings | nothing (markdown) | — |
-
 
 
 
