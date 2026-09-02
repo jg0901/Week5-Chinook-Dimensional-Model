@@ -329,8 +329,9 @@ not just run.
 ## 7. Team process
 - Conventions agreed before any SQL was written. Schema names (raw/clean/mart), table names, and column names were fixed up front so that work done in parallel would compose without rework. This is the most common failure mode in a shared notebook — two people naming the same concept differently — and agreeing it first cost minutes rather than a merge.
 - Pre-cleaning analysis was split by table, two to three tables per member. Each member profiled their own tables: key uniqueness, completeness, value distributions, referential integrity.
-- Whoever profiled a table also cleaned it. The person who found an issue proposed the cleaning step and the DQ flags for it, so context never had to be handed off. Someone who has looked at a column's actual distribution makes better decisions about it than someone reading a summary.
+- Whoever profiled a table should also try to clean it. The person who found an issue proposed the cleaning step, so context never had to be handed off.
 - Findings were consolidated into a shared document before cleaning was finalized. All issues found were shared during checkpoint meeting. 
+- One person finalized the queries for cleaning and validations and for mart layer.
 - Dimensions were distributed only after the clean layer was done.
 
 
