@@ -48,12 +48,95 @@ pipeline in Databricks, and use it to answer six business questions.
 | views | one per business question | 6 views |
 
 <!-- ─────────── new %md cell ─────────── -->
-<!--Shiena: ##2. How to Run -->
+## 2. How to Run
+
+### Prerequisites
+
+- A Databricks workspace with Unity Catalog enabled
+- A running SQL warehouse or cluster
+- The 11 Chinook CSVs in a Unity Catalog volume:
+  `/Volumes/workspace/default/ftw-b12-de/shared/week05/chinook_csv/`
+- Permission to create schemas in the `Week5` catalog.
+- One notebook (`week5_chinook`) that contains all queries.
+
+
+**Run All**, top to bottom. The notebook creates its own schemas
+(`Week5.raw`, `Week5.clean`, `Week5.mart`) and runs in a few minutes on a small
+warehouse.
+
+Every table is built with `CREATE OR REPLACE`, so the notebook is safe to re-run —
+running it twice gives the same result as running it once, and Run All works from
+an empty catalog.
+
+### Run order
+
+| Section | Builds | Depends on |
+|---|---|---|
+| 0. Setup | 3 schemas | — |
+| 1. Raw | 11 tables | the CSV volume |
+| 2. Pre-cleaning analysis | nothing (read-only checks) | Raw |
+| 3. Clean | 11 tables | Raw |
+| 4. Mart | 4 dimensions, 1 fact, 1 aggregate | Clean |
+| 5. Views | 6 business-question views | Mart |
+| 6. Findings | nothing (markdown) | — |
+
 
 
 
 <!-- ─────────── new %md cell ─────────── -->
-<!--MJ: ## 3. Modelling journey -->
+## 3. Modelling journey
+
+### Grain
+
+**One row per invoice line.** This is the finest level the source supports,
+and every measure on the fact must be true at that grain.
+
+### Star schema
+
+```
+
+                 dim_time
+                     │
+  dim_customer ── fact_invoiceline ── dim_track
+                     │
+                dim_employee
+
+```
+
+| Object | Grain | Key columns |
+|---|---|---|
+| `fact_invoiceline` | invoice line | `invoice_line_id` (PK), `invoice_id`, 4 FKs, 3 measures |
+| `dim_customer` | customer | `customer_id` |
+| `dim_employee` | employee | `employee_id` |
+| `dim_track` | track | `track_id` |
+| `dim_time` | date | `invoice_date` |
+| `customer_spend_tier` | customer | derived aggregate, built after the fact |
+
+### Design decisions
+
+**One wide track dimension instead of five small ones.** Track, album, artist,
+genre and media type are combined into a single `dim_track`. Queries about
+genre or artist join one table instead of chaining through several.
+
+**Foreign keys copied onto the fact.** `customer_id`, `employee_id` and
+`invoice_date` live on the fact row even though they come from the invoice
+header and customer record. Every dimension is one join away.
+
+**`invoice_id` has no dimension table.** Everything the invoice described was
+moved elsewhere — the date to `dim_time`, the customer to `dim_customer`,
+billing address dropped, total recalculated from the lines. Only the ID is
+left, so it stays on the fact as a *degenerate dimension*. We keep it because
+order-level metrics like average order value need a way to group lines into
+orders.
+
+**Personal Identifiable Information stop at the clean layer.** Email, phone, fax, address, and
+postal code exist in `Week5.clean` but never reach the mart. More people can
+read mart tables, and none of the six questions need them.
+
+**Spend tier is not part of `dim_customer`.** It is calculated from the fact
+table, so putting it in the dimension would mean building the fact first. It
+lives in its own `customer_spend_tier` table, built after the fact.
+
 
 
 
@@ -111,12 +194,7 @@ Change the data only when you've seen a reason to. Keep the checks either way.
 
 
 <!-- ─────────── new %md cell ─────────── -->
-<!-- Vee:## 5. Validation-->
-
-
-
-<!-- ─────────── new %md cell ─────────── -->
-## 6. Challenge 1 — the CSV parsing bug
+## 5. Challenge 1 — the CSV parsing bug
 
 ### What we saw
 
@@ -176,7 +254,7 @@ exposed it.
 
 <!-- ─────────── new %md cell ─────────── -->
 
-## 6. Challenge 2 — the dataset is synthetic
+## 5. Challenge 2 — the dataset is synthetic
 
 Several answers came back flat. We checked whether that was our analysis or the data, and found the same signature at four independent grains.
 
@@ -218,7 +296,7 @@ reading noise from a seven-order month as a trend.
 
 <!-- ─────────── new %md cell ─────────── -->
 
-## 7. Verification
+## 6. Validations
 
 Checks built into the pipeline, and what each proves.
 
@@ -250,7 +328,7 @@ not just run.
 
 <!-- ─────────── new %md cell ─────────── -->
 
-## 8. Team process
+## 7. Team process
 - Conventions agreed before any SQL was written. Schema names (raw/clean/mart), table names, and column names were fixed up front so that work done in parallel would compose without rework. This is the most common failure mode in a shared notebook — two people naming the same concept differently — and agreeing it first cost minutes rather than a merge.
 - Pre-cleaning analysis was split by table, two to three tables per member. Each member profiled their own tables: key uniqueness, completeness, value distributions, referential integrity.
 - Whoever profiled a table also cleaned it. The person who found an issue proposed the cleaning step and the DQ flags for it, so context never had to be handed off. Someone who has looked at a column's actual distribution makes better decisions about it than someone reading a summary.
@@ -260,7 +338,7 @@ not just run.
 
 <!-- ─────────── new %md cell ─────────── -->
 
-## 9. Business question answers
+## 8. Business question answers
 
 ### Q1 — Top revenue by genre per country
  
